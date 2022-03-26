@@ -85,11 +85,21 @@ def preprocess_document(path: str) -> dict:
                 )
 
                 for match in parser.finditer(buffer.read()):
+                    name = match.group(1).strip()
+                    district = None
+                    title = None
+
+                    if match.group(2).strip():
+                        district = match.group(2).strip()
+                        title = match.group(3).strip()
+                    else:
+                        district = match.group(3).strip()
+
                     output["committee"].append(
                         {
-                            "name": match.group(1).strip(),
-                            "district": match.group(2).strip(),
-                            "title": match.group(3).strip(),
+                            "name": name,
+                            "district": district,
+                            "title": title,
                         }
                     )
 
@@ -135,7 +145,9 @@ def preprocess_document(path: str) -> dict:
         speakers = re.compile(RE_SPEAKERS, flags=(re.MULTILINE | re.DOTALL))
 
         # Parse the content blocks and iterate over them, extracting the topic and body.
-        for topic_idx, content_block in enumerate(content_blocks.finditer(buffer.read())):
+        for topic_idx, content_block in enumerate(
+            content_blocks.finditer(buffer.read())
+        ):
             topic = re.sub("\s+", " ", content_block.group(1).strip())
             body = content_block.group(2)
 
