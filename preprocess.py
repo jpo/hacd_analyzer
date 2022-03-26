@@ -4,18 +4,22 @@ import re
 
 from io import StringIO
 
+# Regexes to parse the subcommittee members.
 RE_COMMITTEE_BEGIN = r"^\s+SUBCOMMITTEE ON DEFENSE$"
 RE_COMMITTEE_MEMBERS = r"(?:^\s|\b)\s+?([^,]*?),+?([^,]*?),*?([^,]*?)(?=\t|\n)"
 RE_COMMITTE_END = r"^\s{2}$"
 
+# Regexes to parse the witnesses.
 RE_WITNESS_BEGIN = r"^\s+WITNESSES$"
 RE_WITNESSES = r"^([^,]+?),(.+?)(?=\n)"
 RE_WITNESS_END = r"^$"
 
+# Regexes to parse the content blocks.
 RE_CONTENT_BLOCKS = (
     r"(\n{2}\s+[0-9A-Z\s\.\(\)\n\-,]+\n{2})(.+?)(?=\s+[0-9A-Z\s\.\(\\)\-,]+\n{2})"
 )
 
+# Regexes to parse the speakers within the content blocks.
 RE_SPEAKERS = r"(?<=\s{4})(Mr\.|Mrs\.|Ms\.|General|Secretary)\s([\w-]+)(\s\[\w+\])*\.(.*?)(?=(\n{2,}|\s{4,}\[|\s{4,}(Mr\.|Mrs\.|Ms\.|General|Secretary)\s[\w-]+\.))"
 
 
@@ -63,6 +67,8 @@ def preprocess_document(path: str) -> dict:
     }
 
     with open(path, "r") as file:
+
+        # Read the file line by line until committee members are found and parsed.
         while True:
             line = file.readline()
 
@@ -89,6 +95,7 @@ def preprocess_document(path: str) -> dict:
 
                 break
 
+        # Continuing reading the file until witnesses are found and parsed.
         while True:
             line = file.readline()
 
@@ -114,14 +121,26 @@ def preprocess_document(path: str) -> dict:
 
                 break
 
+        # At this point, the rest of the file is content. Each content block consists of a
+        # topic and a body. To parse the content, we will read until the end of the file
+        # and use multiline regexes to parse the content blocks.
+
+        # Buffer to hold the content blocks.
         buffer = StringIO(file.read())
+
+        # Regex to parse the content blocks.
         content_blocks = re.compile(RE_CONTENT_BLOCKS, flags=(re.MULTILINE | re.DOTALL))
+
+        # Regex to parse the speakers within the content blocks.
         speakers = re.compile(RE_SPEAKERS, flags=(re.MULTILINE | re.DOTALL))
 
+        # Parse the content blocks and iterate over them, extracting the topic and body.
         for content_block in content_blocks.finditer(buffer.read()):
             topic = re.sub("\s+", " ", content_block.group(1).strip())
             body = content_block.group(2)
 
+            # Parse the speakers within each content block, iterating over them, and
+            # extracting the speaker name, remarks, and word count.
             for speaker in speakers.finditer(body):
                 title = speaker.group(1).strip()
                 name = speaker.group(2).strip()
