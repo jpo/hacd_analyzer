@@ -64,7 +64,7 @@ def preprocess_document(path: str) -> dict:
     """
 
     output = {
-        "committee": [],
+        "members": [],
         "witnesses": [],
         "content": [],
     }
@@ -89,17 +89,17 @@ def preprocess_document(path: str) -> dict:
                 )
 
                 for match in parser.finditer(buffer.read()):
-                    name = match.group(1).strip()
+                    name = match.group(1).strip().upper()
                     district = None
                     title = None
 
                     if match.group(2).strip():
-                        district = match.group(2).strip()
-                        title = match.group(3).strip()
+                        district = match.group(2).strip().upper()
+                        title = match.group(3).strip().upper()
                     else:
-                        district = match.group(3).strip()
+                        district = match.group(3).strip().upper()
 
-                    output["committee"].append(
+                    output["members"].append(
                         {
                             "name": name,
                             "district": district,
@@ -128,8 +128,8 @@ def preprocess_document(path: str) -> dict:
                 for match in parser.finditer(buffer.read()):
                     output["witnesses"].append(
                         {
-                            "name": match.group(1).strip(),
-                            "title": match.group(2).strip(),
+                            "name": match.group(1).strip().upper(),
+                            "title": match.group(2).strip().upper(),
                         }
                     )
 
@@ -158,8 +158,8 @@ def preprocess_document(path: str) -> dict:
             # Parse the speakers within each content block, iterating over them, and
             # extracting the speaker name, remarks, and word count.
             for speaker_idx, speaker in enumerate(speakers.finditer(body)):
-                title = speaker.group(1).strip()
-                surname = speaker.group(2).strip()
+                title = speaker.group(1).strip().upper()
+                surname = speaker.group(2).strip().upper()
                 remarks = speaker.group(4).translate(str.maketrans("", "", "\r\n\t"))
                 words = remarks.split()
                 word_count = len(words)
