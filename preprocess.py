@@ -40,12 +40,15 @@ def parse_cli_args() -> argparse.Namespace:
     """
 
     parser = argparse.ArgumentParser(description="DoD Hearing document parser")
+
     parser.add_argument(
         "-i", "--input", dest="input", required=True, help="Path to input file"
     )
+
     parser.add_argument(
         "-o", "--output", dest="output", required=True, help="Path to output file"
     )
+
     return parser.parse_args()
 
 
@@ -80,6 +83,7 @@ def preprocess_document(path: str) -> dict:
                     buffer.write(line)
 
                 buffer.seek(0)
+
                 parser = re.compile(
                     RE_COMMITTEE_MEMBERS, flags=(re.MULTILINE | re.DOTALL)
                 )
@@ -157,8 +161,9 @@ def preprocess_document(path: str) -> dict:
                 title = speaker.group(1).strip()
                 surname = speaker.group(2).strip()
                 remarks = speaker.group(4).translate(str.maketrans("", "", "\r\n\t"))
-                remarks = " ".join(remarks.split())
-                word_count = len(remarks.split())
+                words = remarks.split()
+                word_count = len(words)
+                question_count = remarks.count("?")
 
                 output["content"].append(
                     {
@@ -169,7 +174,8 @@ def preprocess_document(path: str) -> dict:
                         "speaker_surname": surname,
                         "speaker_name": f"{title} {surname}",
                         "word_count": word_count,
-                        "remarks": remarks,
+                        "question_count": question_count,
+                        "remarks": " ".join(words),
                     }
                 )
 
