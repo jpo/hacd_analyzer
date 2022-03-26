@@ -39,7 +39,7 @@ def parse_cli_args() -> argparse.Namespace:
         argparse.Namespace: The parsed arguments.
     """
 
-    parser = argparse.ArgumentParser(description="DoD Hearing document parser")
+    parser = argparse.ArgumentParser(description="HAC-D hearing transcript parser")
 
     parser.add_argument(
         "-i", "--input", dest="input", required=True, help="Path to input file"
