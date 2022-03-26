@@ -23,7 +23,7 @@ def main() -> None:
     """Main function"""
 
     args = parse_cli_args()
-    output = preprocess_document(args.file)
+    output = preprocess_document(args.input)
     save_output(args.output, output)
 
 
