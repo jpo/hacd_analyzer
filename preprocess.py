@@ -135,24 +135,27 @@ def preprocess_document(path: str) -> dict:
         speakers = re.compile(RE_SPEAKERS, flags=(re.MULTILINE | re.DOTALL))
 
         # Parse the content blocks and iterate over them, extracting the topic and body.
-        for content_block in content_blocks.finditer(buffer.read()):
+        for topic_idx, content_block in enumerate(content_blocks.finditer(buffer.read())):
             topic = re.sub("\s+", " ", content_block.group(1).strip())
             body = content_block.group(2)
 
             # Parse the speakers within each content block, iterating over them, and
             # extracting the speaker name, remarks, and word count.
-            for speaker in speakers.finditer(body):
+            for speaker_idx, speaker in enumerate(speakers.finditer(body)):
                 title = speaker.group(1).strip()
-                name = speaker.group(2).strip()
+                surname = speaker.group(2).strip()
                 remarks = speaker.group(4).translate(str.maketrans("", "", "\r\n\t"))
                 remarks = " ".join(remarks.split())
                 word_count = len(remarks.split())
 
                 output["content"].append(
                     {
-                        "topic": topic,
-                        "title": title,
-                        "name": name,
+                        "topic_id": topic_idx,
+                        "topic_name": topic,
+                        "remark_id": speaker_idx,
+                        "speaker_title": title,
+                        "speaker_surname": surname,
+                        "speaker_name": f"{title} {surname}",
                         "word_count": word_count,
                         "remarks": remarks,
                     }
