@@ -108,7 +108,6 @@ def analyze(path: str) -> pd.DataFrame:
 
             output.append(df_speakers)
 
-        # import pdb; pdb.set_trace()
         return pd.concat(output, ignore_index=True)
 
 
