@@ -1,19 +1,24 @@
 import argparse
 import json
+import os
 import pandas as pd
 from textblob import TextBlob
-
-
-# Speaker rate in words per minute.
-WPM = 140
 
 
 def main() -> None:
     """Main function"""
 
     args = parse_cli_args()
-    output = analyze(args.input)
-    save_output(args.output, output)
+
+    if os.path.isdir(args.input):
+        for file in os.listdir(args.input):
+            if file.endswith(".json"):
+                print(file)
+                output = analyze(os.path.join(args.input, file))
+                save_output(os.path.join(args.output, file.replace(".json", ".csv")), output)
+    else:
+        output = analyze(args.input)
+        save_output(args.output, output)
 
 
 def parse_cli_args() -> argparse.Namespace:
@@ -49,43 +54,62 @@ def analyze(path: str) -> pd.DataFrame:
 
     with open(path, "r") as file:
         data = json.load(file)
-        df_members = pd.DataFrame(data["members"])
-        df_witnesses = pd.DataFrame(data["witnesses"])
-        df_content = pd.DataFrame(data["content"])
+        hearings = data["hearings"]
+        df_members = pd.DataFrame(data.get("members", []), columns=["name", "district"])
+        output = []
 
-        df_content["role"] = df_content.speaker_surname.apply(
-            lambda s: "WITNESS" if df_witnesses.name.str.contains(s).any() else "MEMBER"
-        )
+        for hearing in hearings:
+            if "witnesses" not in hearing or "speakers" not in hearing:
+                continue
 
-        df_content["district"] = df_content.speaker_surname.apply(
-            lambda s: df_members[df_members.name.str.contains(s)].district.values[0] \
-                if df_members.name.str.contains(s).any() else None
-        )
+            df_witnesses = pd.DataFrame(data=hearing.get("witnesses", []), columns=["name"])
 
-        df_content["minutes"] = df_content.word_count / WPM
+            df_speakers = pd.DataFrame(hearing.get("speakers", []))
+            df_speakers["year"] = data["header"]["year"]
+            df_speakers["date"] = hearing["date"]
 
-        df_content["polarity"], df_content["subjectivity"] = zip(
-            *df_content.remarks.map(lambda r: TextBlob(r).sentiment)
-        )
+            df_speakers["role"] = df_speakers.surname.apply(
+                lambda s: "WITNESS" if df_witnesses.name.str.contains(s.upper()).any() else "MEMBER"
+            )
 
-        df_content = df_content.reindex(columns=[
-            "topic_id",
-            "topic_name",
-            "speaker_title",
-            "speaker_surname",
-            "speaker_name",
-            "district",
-            "role",
-            "word_count",
-            "question_count",
-            "minutes",
-            "polarity",
-            "subjectivity",
-            "remark_id",
-            "remarks",
-        ])
+            df_speakers["district"] = df_speakers.surname.apply(
+                lambda s: df_members[df_members.name.str.contains(s.upper())].district.values[0] \
+                    if df_members.name.str.contains(s.upper()).any() else None
+            )
 
-        return df_content
+            df_speakers["district_mentions"] = df_speakers.remarks.apply(
+                lambda r: r.count("my district") \
+                    + r.count("my state") \
+                    + r.count("my constituents") \
+                    + r.count("I represent")) 
+
+            df_speakers["word_count"] = df_speakers.remarks.apply(lambda r: len(r.split()))
+
+            df_speakers["question_count"] = df_speakers.remarks.apply(lambda r: r.count("?"))
+
+            df_speakers["polarity"], df_speakers["subjectivity"] = zip(
+                *df_speakers.remarks.map(lambda r: TextBlob(r).sentiment)
+            )
+
+            df_speakers = df_speakers.reindex(columns=[
+                "year",
+                "date",
+                "title",
+                "surname",
+                "role",
+                "district",
+                "district_mentions",
+                "word_count",
+                "question_count",
+                "polarity",
+                "subjectivity",
+                "remarks",
+            ])
+
+            output.append(df_speakers)
+
+        # import pdb; pdb.set_trace()
+        return pd.concat(output, ignore_index=True)
 
 
 def save_output(path: str, output: pd.DataFrame) -> None:
